@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
+const jwt = require("jsonwebtoken");
 
 app.use(cors());
 app.use(express.json());
@@ -26,9 +27,41 @@ const client = new MongoClient(uri, {
   },
 });
 
+// verify jwt
+function verifyJWT(req, res, next) {
+  const headerAuthorization = req.headers.authorization;
+  console.log(headerAuthorization);
+  if (!headerAuthorization) {
+    return res.status(401).send("unauthorize access");
+  }
+  const token = headerAuthorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send("forbidden access");
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 async function run() {
   try {
     const userCollection = client.db("CodeSikho").collection("users");
+
+    // jwt create token
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      res.status(403).send({ accessToken: "" });
+    });
+
     // create user
     app.post("/user", async (req, res) => {
       const user = req.body;
@@ -36,14 +69,14 @@ async function run() {
       res.send(result);
     });
     // get user
-    app.get("/user", async (req, res) => {
+    app.get("/user", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const query = { email };
       const userTata = await userCollection.findOne(query);
       res.send(userTata);
     });
-    // update user
-    app.put("/user/:id", async (req, res) => {
+    // update user data
+    app.put("/user/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const userData = req.body;
       const filter = { _id: new ObjectId(id) };
