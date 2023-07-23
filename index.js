@@ -47,6 +47,17 @@ function verifyJWT(req, res, next) {
 async function run() {
   try {
     const userCollection = client.db("CodeSikho").collection("users");
+    const courses = client.db("CodeSikho").collection("courses");
+    // verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     // jwt create token
     app.get("/jwt", async (req, res) => {
@@ -89,9 +100,28 @@ async function run() {
           phone: userData.phone,
         },
       };
-
       const result = await userCollection.updateOne(filter, updateDoc, option);
       res.send(result);
+    });
+
+    // create courses
+    app.post("/courses", verifyJWT, verifyAdmin, async (req, res) => {
+      const course = req.body;
+      const result = await courses.insertOne(course);
+      res.send(result);
+    });
+    // get courses
+    app.get("/courses", async (req, res) => {
+      const query = {};
+      const result = await courses.find(query).toArray();
+      res.send(result);
+    });
+    // get admin
+    app.get("/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
     });
   } finally {
     // Ensures that the client will close when you finish/error
