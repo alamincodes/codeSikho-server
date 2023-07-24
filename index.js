@@ -116,6 +116,13 @@ async function run() {
       const result = await courses.find(query).toArray();
       res.send(result);
     });
+    // get courses
+    app.get("/course/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await courses.findOne(query);
+      res.send(result);
+    });
     // get admin
     app.get("/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
