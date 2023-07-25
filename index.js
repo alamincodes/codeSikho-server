@@ -48,6 +48,9 @@ async function run() {
   try {
     const userCollection = client.db("CodeSikho").collection("users");
     const courses = client.db("CodeSikho").collection("courses");
+    const ordersCollection = client
+      .db("CodeSikho")
+      .collection("ordersCollection");
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -104,6 +107,19 @@ async function run() {
       res.send(result);
     });
 
+    // create enroll
+    app.post("/enroll", verifyJWT, async (req, res) => {
+      const enroll = req.body;
+      const result = await ordersCollection.insertOne(enroll);
+      res.send(result);
+    });
+    // get user enroll
+    app.get("/enroll", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const query = { email };
+      const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
     // create courses
     app.post("/courses", verifyJWT, verifyAdmin, async (req, res) => {
       const course = req.body;
@@ -117,7 +133,7 @@ async function run() {
       res.send(result);
     });
     // get courses
-    app.get("/course/:id", async (req, res) => {
+    app.get("/course/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await courses.findOne(query);
