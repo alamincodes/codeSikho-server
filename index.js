@@ -89,6 +89,31 @@ async function run() {
       const userTata = await userCollection.findOne(query);
       res.send(userTata);
     });
+
+    // get paid user
+    app.get("/paidUser/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isPaidUser: user?.userStatus === "paid" });
+    });
+    // update paid user data
+    app.put("/paidUser/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const status = req.body;
+      // console.log(status);
+      const filter = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+
+      const updateDoc = {
+        $set: {
+          // update paid status
+          userStatus: status.userStatus,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, option);
+      res.send(result);
+    });
     // update user data
     app.put("/user/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
@@ -118,6 +143,31 @@ async function run() {
       const email = req.query.email;
       const query = { email };
       const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
+    // get admin show all enroll request
+    app.get("/admin/enroll", async (req, res) => {
+      const query = {};
+      const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
+    // get admin update enroll request status
+    app.put("/enroll/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const updateStatus = req.body;
+      console.log(updateStatus);
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          status: updateStatus.status,
+        },
+      };
+      const result = await ordersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
       res.send(result);
     });
     // create courses
