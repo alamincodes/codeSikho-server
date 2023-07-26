@@ -51,6 +51,9 @@ async function run() {
     const ordersCollection = client
       .db("CodeSikho")
       .collection("ordersCollection");
+    const classLinkAndNotice = client
+      .db("CodeSikho")
+      .collection("classLinkAndNotice");
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -91,7 +94,7 @@ async function run() {
     });
 
     // get paid user
-    app.get("/paidUser/:email", verifyJWT, async (req, res) => {
+    app.get("/paidUser/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await userCollection.findOne(query);
@@ -132,6 +135,36 @@ async function run() {
       res.send(result);
     });
 
+    // get class link and notice
+    app.get("/classLink", verifyJWT, async (req, res) => {
+      const query = {};
+      const result = await classLinkAndNotice.find(query).toArray();
+      res.send(result);
+    });
+
+    // update class link and notice
+    app.put("/classLink/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const update = req.body;
+      // console.log(status);
+      const filter = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+
+      const updateDoc = {
+        $set: {
+          // update paid status
+          notice: update.notice,
+          link: update.link,
+        },
+      };
+      const result = await classLinkAndNotice.updateOne(
+        filter,
+        updateDoc,
+        option
+      );
+      res.send(result);
+    });
+
     // create enroll
     app.post("/enroll", verifyJWT, async (req, res) => {
       const enroll = req.body;
@@ -146,8 +179,10 @@ async function run() {
       res.send(result);
     });
     // get admin show all enroll request
-    app.get("/admin/enroll", async (req, res) => {
-      const query = {};
+    app.get("/admin/enroll", verifyJWT, verifyAdmin, async (req, res) => {
+      const search = req.query.search;
+      // console.log(search);
+      const query = { email: { $regex: search, $options: "i" } };
       const result = await ordersCollection.find(query).toArray();
       res.send(result);
     });
