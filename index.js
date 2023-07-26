@@ -155,6 +155,7 @@ async function run() {
           // update paid status
           notice: update.notice,
           link: update.link,
+          disableBtn: update.disableBtn,
         },
       };
       const result = await classLinkAndNotice.updateOne(
